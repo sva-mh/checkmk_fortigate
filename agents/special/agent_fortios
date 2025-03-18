@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import logging
 import sys
+import traceback 
+
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Optional
@@ -37,6 +39,7 @@ from cmk.special_agents.v0_unstable.agent_common  import (
 from cmk.special_agents.v0_unstable.argument_parsing import Args, create_default_argument_parser
 from requests.adapters import HTTPAdapter
 
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 _LOGGER = logging.getLogger("agent_fortios")
 
 
@@ -162,11 +165,12 @@ _SECTIONS = [
         path="monitor/system/dhcp",
         min_version=_REST_VERSION,
     ),
-    _SectionSpec(
-       name="sensors",
-       path="monitor/system/sensor-info",
-       min_version=_REST_VERSION,
-    ),
+    # Crashes with 404 currently
+    #_SectionSpec(
+    #   name="sensors",
+    #   path="monitor/system/sensor-info",
+    #   min_version=_REST_VERSION,
+    #),
 ]
 
 
@@ -343,7 +347,7 @@ def agent_fortios(args: Args) -> int:
             _LOGGER.error(f"Collecting {spec.name} failed: {spec.path}")
             sys.stdout.write("\n<<<>>>\n") # Hotfix: End previous-section. SectionError appends the error output to a working section otherwise. 
                                            # CorrectSolution: SectionWriter+co should close its section on __exit__
-            SectionError(f"Section error for spec: {spec.name} with path: {spec.path}")
+            SectionError(f"Section error for spec: {spec.name} with path: {spec.path}, {traceback.format_exc()}")
             if args.debug:
                 return 1
             else:
@@ -386,7 +390,7 @@ def agent_fortios(args: Args) -> int:
         # map the switch health data to the correct switch
         switch_health_data_result = switch_health_data.get(switch.get("serial"))
 
-        with ConditionalPiggybackSection(switch["name"]):
+        with ConditionalPiggybackSection(switch["switch-id"]):
             with SectionWriter("fortios_managed_switch_interface") as writer:
                 writer.append_json({"switch_port_stats": switch_port_stats_result, "switch_ports": switch, "switch_status": switch_data_result})
             with SectionWriter("fortios_managed_switch_health") as writer:
