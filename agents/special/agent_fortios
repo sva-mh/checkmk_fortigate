@@ -382,11 +382,12 @@ def agent_fortios(args: Args) -> int:
 
     for switch in switch_status_data:
         switch_serial = switch.get("serial")
+        switch_id = switch.get("switch-id")
 
         # map the ports stat data to the correct switch
         switch_port_stats_result = next((item for item in switch_port_stats if item.get("serial") == switch_serial), None)
         # map the switch data to the correct switch
-        switch_data_result = next((item for item in switch_data if item.get("switch-id") == switch_serial), None)
+        switch_data_result = next((item for item in switch_data if item.get("switch-id") == switch_id), None)
         # map the switch health data to the correct switch
         switch_health_data_result = switch_health_data.get(switch.get("serial"))
 
